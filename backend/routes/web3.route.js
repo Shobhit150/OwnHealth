@@ -2,7 +2,7 @@
 import express from "express";
 import { writeInContract, uploadToPinata, getCID, fetchFromIPFS } from "../controllers/web3.controller.js"
 import pool from "../db/db.js";
-import { analyzeHealth } from "../services/ai.service.js";
+import { analyzeHealth, analyzeHealthHistory } from "../services/ai.service.js";
 
 export const router = express.Router();
 
@@ -65,26 +65,72 @@ router.post("/insert", async (req, res) => {
   }
 });
 
-router.get("/read/:name", async (req, res) => {
+router.get("/history/:name", async (req, res) => {
   try {
-    const name = req.params.name;
-    // const cids = await getCID(name);
+    const { name } = req.params;
 
     const dbRes = await pool.query(
-      "SELECT cid, text FROM records WHERE name = $1 ORDER BY created_at DESC",
+      `SELECT analysis, created_at 
+       FROM health_records 
+       WHERE name=$1 
+       ORDER BY created_at ASC`,
       [name]
     );
 
-    res.json({
-      name,
-      records: dbRes.rows.map(row => ({
-        cid: row.cid,
-        content: row.text
-      }))
-    });
+    const history = dbRes.rows.map(row => {
+      try {
+        return {
+          ...(
+            typeof row.analysis === "string"
+              ? JSON.parse(row.analysis)
+              : row.analysis
+          ),
+          created_at: row.created_at
+        };
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+
+    res.json({ name, history });
 
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: "read failed" });
+    console.error(err);
+    res.status(500).json({ error: "history fetch failed" });
+  }
+});
+
+router.get("/history_anaylysis/:name", async (req, res) => {
+  try {
+    const { name } = req.params;
+
+    const dbRes = await pool.query(
+      `SELECT analysis 
+       FROM health_records 
+       WHERE name=$1 
+       ORDER BY created_at ASC`,
+      [name]
+    );
+
+    const history = dbRes.rows.map(r =>
+      typeof r.analysis === "string"
+        ? JSON.parse(r.analysis)
+        : r.analysis
+    );
+
+    const aiRaw = await analyzeHealthHistory(history);
+
+    let aiData;
+    try {
+      aiData = JSON.parse(aiRaw);
+    } catch {
+      aiData = { error: "Invalid AI response", raw: aiRaw };
+    }
+
+    res.json(aiData);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "doctor analysis failed" });
   }
 });

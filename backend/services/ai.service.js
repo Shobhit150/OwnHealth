@@ -52,3 +52,54 @@ Only return valid JSON. No explanation.
 
   return completion.choices[0].message.content;
 }
+
+export async function analyzeHealthHistory(history) {
+  const completion = await openai.chat.completions.create({
+    model: "deepseek-reasoner",
+    messages: [
+      {
+        role: "system",
+        content: `
+You are a senior doctor analyzing a patient's LONGITUDINAL health data.
+
+You will be given multiple past health analyses over time.
+
+Your job:
+- Detect trends (improving / worsening)
+- Identify persistent risks
+- Recommend vitamins and medications ONLY if needed
+- Suggest lifestyle changes based on patterns
+- Be conservative and safe
+
+Return STRICT JSON:
+
+{
+  "trend": "improving | worsening | stable",
+  "risk_level": "low | medium | high",
+  "key_issues": string[],
+  "recommendations": {
+    "lifestyle": string[],
+    "vitamins": string[],
+    "medications": string[]
+  }
+}
+
+Rules:
+- Focus on patterns across reports, not single values
+- Do NOT over-prescribe
+- Prefer lifestyle + vitamins over drugs
+- If high risk → suggest consulting real doctor
+
+Only return JSON.
+        `
+      },
+      {
+        role: "user",
+        content: JSON.stringify(history).slice(0, 12000)
+      }
+    ],
+    temperature: 0.2
+  });
+
+  return completion.choices[0].message.content;
+}
