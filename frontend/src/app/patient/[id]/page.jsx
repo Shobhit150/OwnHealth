@@ -11,18 +11,24 @@ export default function PatientPage() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    // Try sessionStorage first (came directly from upload)
     const raw = sessionStorage.getItem("vitalscan_result");
     const pat = sessionStorage.getItem("vitalscan_patient");
+
     if (raw) {
-      setResult(JSON.parse(raw));
+      const parsed = JSON.parse(raw);
+      setResult(parsed);
       setPatient(pat ? JSON.parse(pat) : null);
       setLoaded(true);
     } else {
-      // Fallback: fetch from your API if you have a GET /api/records/:id endpoint
-      fetch(`http://localhost:3001/api/records/${id}`)
+      fetch(`http://localhost:3001/api/record/${id}`)
         .then((r) => r.json())
-        .then((data) => { setResult(data); setLoaded(true); })
+        .then((data) => {
+          setResult({
+            id: data.id,
+            data: data.analysis
+          });
+          setLoaded(true);
+        })
         .catch(() => setLoaded(true));
     }
   }, [id]);

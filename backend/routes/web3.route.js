@@ -9,7 +9,7 @@ export const router = express.Router();
 router.post("/insert", async (req, res) => { 
   console.log("Insert hit");
   try {
-    const { name, text } = req.body;
+    const { name, text, phone } = req.body;
     if (!name || !text) {
       return res.status(400).json({ error: "name & text required" });
     }
@@ -51,7 +51,7 @@ router.post("/insert", async (req, res) => {
         );
 
         const tx = await writeInContract(name, cid);
-        await tx.wait();
+        tx.wait().catch(console.error);
 
       } catch (err) {
         console.error("Background error:", err.message);
@@ -132,5 +132,30 @@ router.get("/history_anaylysis/:name", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "doctor analysis failed" });
+  }
+});
+
+router.get("/record/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const dbRes = await pool.query(
+      "SELECT id, name, analysis FROM health_records WHERE id=$1",
+      [id]
+    );
+
+    if (!dbRes.rows.length) {
+      return res.status(404).json({ error: "Not found" });
+    }
+
+    res.json({
+      id: dbRes.rows[0].id,
+      name: dbRes.rows[0].name,
+      analysis: dbRes.rows[0].analysis
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "fetch failed" });
   }
 });
