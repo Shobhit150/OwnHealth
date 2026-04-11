@@ -22,6 +22,11 @@ router.post("/insert", async (req, res) => {
       aiData = { error: "Invalid AI response", raw: aiRaw };
     }
 
+    const scoreTable = await pool.query(
+      "INSERT INTO health_user_score (name, score) VALUES ($1, $2)",
+      [name, aiData.score]
+    )
+
     const result = await pool.query(
       "INSERT INTO health_records (name, text, analysis) VALUES ($1, $2, $3) RETURNING id",
       [name, text, aiData]
