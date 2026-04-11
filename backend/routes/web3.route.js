@@ -159,3 +159,47 @@ router.get("/record/:id", async (req, res) => {
     res.status(500).json({ error: "fetch failed" });
   }
 });
+
+router.get("/latest-reports", async (req, res) => {
+  try {
+    const dbRes = await pool.query(`
+      SELECT *
+      FROM (
+        SELECT DISTINCT ON (name)
+          id,
+          name,
+          analysis,
+          created_at
+        FROM health_records
+        ORDER BY name, created_at DESC
+      ) sub
+      ORDER BY created_at DESC
+      LIMIT 10;
+    `);
+
+    const data = dbRes.rows.map(row => {
+      try {
+        return {
+          id: row.id,
+          name: row.name,
+          analysis:
+            typeof row.analysis === "string"
+              ? JSON.parse(row.analysis)
+              : row.analysis,
+          created_at: row.created_at
+        };
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+
+    res.json({
+      count: data.length,
+      reports: data
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "failed to fetch latest reports" });
+  }
+});
