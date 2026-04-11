@@ -7,6 +7,7 @@ import { analyzeHealth } from "../services/ai.service.js";
 export const router = express.Router();
 
 router.post("/insert", async (req, res) => { 
+  console.log("Insert hit");
   try {
     const { name, text } = req.body;
     if (!name || !text) {
