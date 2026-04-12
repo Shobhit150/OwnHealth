@@ -10,6 +10,7 @@ export default function PatientPage() {
   const [patient, setPatient] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
+  
   useEffect(() => {
     const raw = sessionStorage.getItem("vitalscan_result");
     const pat = sessionStorage.getItem("vitalscan_patient");
@@ -20,7 +21,7 @@ export default function PatientPage() {
       setPatient(pat ? JSON.parse(pat) : null);
       setLoaded(true);
     } else {
-      fetch(`http://localhost:3001/api/record/${id}`)
+      fetch(`http://10.55.0.250:3001/api/record/${id}`)
         .then((r) => r.json())
         .then((data) => {
           setResult({
@@ -35,8 +36,14 @@ export default function PatientPage() {
 
   if (!loaded) return <LoadingScreen />;
   if (!result) return <NotFound onBack={() => router.push("/")} />;
-
+  
   const d = result?.data;
+
+  const phone = patient?.phone || "+919870148723";
+
+  const message = encodeURIComponent(
+    `Hello, I'm contacting regarding a health report.\n\nPatient: ${patient?.name || "Unknown"}\nScore: ${d?.score}/100\n\nPlease assist.`
+  );
   const score = d?.score ?? 0;
   const scoreColor = score >= 75 ? "#34d399" : score >= 50 ? "#fbbf24" : "#f87171";
   const barBg = score >= 75 ? "bg-emerald-400" : score >= 50 ? "bg-amber-400" : "bg-red-400";
@@ -55,14 +62,13 @@ export default function PatientPage() {
       />
       <div className="pointer-events-none fixed top-[-20%] left-[-10%] w-[700px] h-[700px] rounded-full bg-emerald-600/8 blur-[120px]" />
 
-      {/* Nav */}
       <nav className="relative z-20 flex items-center justify-between px-8 py-5 border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
             <span className="text-emerald-400 text-sm">♥</span>
           </div>
           <span className="font-bold tracking-tight text-white">
-            Vital<span className="text-emerald-400">Scan</span>
+            Own<span className="text-emerald-400">Health</span>
           </span>
         </div>
         <button
@@ -194,15 +200,19 @@ export default function PatientPage() {
     </div>
 
     <div className="grid grid-cols-2 gap-3">
-      <button
-        onClick={() => alert("Chat coming soon")}
+      <a
+        href={`https://wa.me/${phone.replace(/\D/g, "")}?text=${message}`}
+        target="_blank"
+        rel="noopener noreferrer"
         className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold tracking-wide transition-all"
       >
         💬 Chat doctor
-      </button>
+      </a>
       
-        <a href="tel:+919999999999"
-        className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-700 hover:border-slate-600 bg-slate-800/40 hover:bg-slate-800 text-slate-300 text-xs font-mono tracking-wide transition-all">
+        <a
+          href={`tel:${patient?.phone || "+919999999999"}`}
+          className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-700 hover:border-slate-600 bg-slate-800/40 hover:bg-slate-800 text-slate-300 text-xs font-mono tracking-wide transition-all"
+        >
         📞 Call now
       </a>
     </div>

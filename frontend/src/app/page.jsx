@@ -94,7 +94,7 @@ export default function Home() {
     setLoading(true);
     try {
       const pdfText = await parsePDF(file);
-      const res = await fetch("http://localhost:3001/api/insert", {
+      const res = await fetch("http://10.55.0.250:3001/api/insert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), phone: phone.trim(), text: pdfText }),
@@ -140,7 +140,7 @@ export default function Home() {
             <span className="text-emerald-400 text-sm">♥</span>
           </div>
           <span className="font-bold tracking-tight text-white">
-            Vital<span className="text-emerald-400">Scan</span>
+            Own<span className="text-emerald-400">Health</span>
           </span>
         </div>
         <div className="hidden md:flex items-center gap-8 text-xs text-slate-500 tracking-widest uppercase">

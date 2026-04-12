@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const API = "http://localhost:3001/api/latest-reports";
+const API = "http://10.55.0.250:3001/api/latest-reports";
 
 const AVATAR_COLORS = [
   { bg: "bg-blue-500/10 text-blue-400" },
@@ -41,7 +41,12 @@ function badgeBg(s) {
 }
 
 function timeAgo(iso) {
-  const d = Math.floor((Date.now() - new Date(iso)) / 1000);
+  const date = new Date(iso);
+
+  const adjusted = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+
+  const d = Math.floor((Date.now() - adjusted.getTime()) / 1000);
+
   if (d < 60) return "just now";
   if (d < 3600) return `${Math.floor(d / 60)}m ago`;
   if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
@@ -72,7 +77,6 @@ function PatientCard({ report }) {
 
   return (
     <div className={`rounded-2xl border bg-slate-900 overflow-hidden transition-all ${open ? "border-slate-600" : "border-slate-800"}`}>
-      {/* Header */}
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-slate-800/40 transition-colors"
@@ -95,10 +99,8 @@ function PatientCard({ report }) {
         <span className={`text-slate-500 transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
 
-      {/* Expanded body */}
       {open && (
         <div className="border-t border-slate-800 px-5 py-5">
-          {/* Score + Life Expectancy */}
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div>
               <p className="font-mono text-[10px] tracking-widest text-slate-500 uppercase mb-2">Health score</p>
@@ -115,7 +117,6 @@ function PatientCard({ report }) {
             </div>
           </div>
 
-          {/* Anomalies */}
           {anomalies.length > 0 && (
             <div className="mb-4">
               <p className="font-mono text-[10px] tracking-widest text-slate-500 uppercase mb-2">Anomalies</p>
@@ -123,7 +124,6 @@ function PatientCard({ report }) {
             </div>
           )}
 
-          {/* Current health + Lifestyle */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="font-mono text-[10px] tracking-widest text-slate-500 uppercase mb-2">Current health</p>
@@ -135,7 +135,6 @@ function PatientCard({ report }) {
             </div>
           </div>
 
-          {/* Vitamins + Medications */}
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div>
               <p className="font-mono text-[10px] tracking-widest text-slate-500 uppercase mb-2">Vitamins</p>
@@ -147,7 +146,6 @@ function PatientCard({ report }) {
             </div>
           </div>
 
-          {/* Action buttons */}
           <div className="grid grid-cols-3 gap-2">
             {phone && (
               
@@ -208,25 +206,22 @@ export default function DoctorDashboard() {
       <div className="pointer-events-none fixed inset-0 opacity-[0.025]"
         style={{ backgroundImage: "linear-gradient(#94a3b8 1px,transparent 1px),linear-gradient(90deg,#94a3b8 1px,transparent 1px)", backgroundSize: "48px 48px" }} />
 
-      {/* Nav */}
       <nav className="relative z-20 flex items-center justify-between px-8 py-5 border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
             <span className="text-emerald-400 text-sm">♥</span>
           </div>
-          <span className="font-bold tracking-tight text-white">Vital<span className="text-emerald-400">Scan</span></span>
+          <span className="font-bold tracking-tight text-white">Own<span className="text-emerald-400">Health</span></span>
           <span className="text-xs text-slate-600 font-mono ml-2">/ Doctor View</span>
         </div>
       </nav>
 
       <div className="relative z-10 max-w-3xl mx-auto px-6 py-10">
-        {/* Header */}
         <div className="mb-8">
           <p className="font-mono text-[10px] tracking-widest text-emerald-500 uppercase mb-2">Doctor Dashboard</p>
           <h1 className="text-2xl font-extrabold tracking-tight text-white">Patient Records</h1>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[["Total patients", reports.length], ["Need attention", alerts], ["Avg score", avgScore]].map(([label, val]) => (
             <div key={label} className="rounded-xl border border-slate-800 bg-slate-900 p-4">
@@ -236,7 +231,6 @@ export default function DoctorDashboard() {
           ))}
         </div>
 
-        {/* Search + Filter */}
         <div className="flex gap-2 mb-5 flex-wrap">
           <input
             className="flex-1 min-w-0 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 outline-none focus:border-emerald-500 transition-colors"
@@ -259,14 +253,12 @@ export default function DoctorDashboard() {
           ))}
         </div>
 
-        {/* Error */}
         {error && (
           <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-red-400 text-xs font-mono">
             ✕ {error} — make sure the API server is running on localhost:3001
           </div>
         )}
 
-        {/* Loading */}
         {loading && (
           <div className="text-center py-16 text-slate-500 font-mono text-xs tracking-widest uppercase">
             <svg className="animate-spin w-6 h-6 text-emerald-500 mx-auto mb-3" viewBox="0 0 24 24" fill="none">
@@ -277,7 +269,6 @@ export default function DoctorDashboard() {
           </div>
         )}
 
-        {/* Records */}
         {!loading && (
           <div className="flex flex-col gap-3">
             {filtered.length === 0 ? (

@@ -3,11 +3,11 @@ import express from "express";
 import { writeInContract, uploadToPinata, getCID, fetchFromIPFS } from "../controllers/web3.controller.js"
 import pool from "../db/db.js";
 import { analyzeHealth, analyzeHealthHistory } from "../services/ai.service.js";
+import { storeScore } from "../services/stellar.service.js"
 
 export const router = express.Router();
 
 router.post("/insert", async (req, res) => { 
-  console.log("Insert hit");
   try {
     const { name, text, phone } = req.body;
     if (!name || !text) {
@@ -29,8 +29,8 @@ router.post("/insert", async (req, res) => {
     )
 
     const result = await pool.query(
-      "INSERT INTO health_records (name, text, analysis) VALUES ($1, $2, $3) RETURNING id",
-      [name, text, aiData]
+      "INSERT INTO health_records (name, text, phone, analysis) VALUES ($1, $2, $3, $4) RETURNING id",
+      [name, text, phone, aiData]
     );
 
     const recordId = result.rows[0].id;
@@ -40,6 +40,13 @@ router.post("/insert", async (req, res) => {
       id: recordId,
       data: aiData
     });
+
+    storeScore(name, aiData.score)
+      .then(res => {
+      })
+      .catch(err => {
+        console.error("Stellar failed:", err.message);
+      });
 
     (async () => {
       try {
