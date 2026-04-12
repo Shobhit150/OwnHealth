@@ -175,6 +175,7 @@ router.get("/latest-reports", async (req, res) => {
         SELECT DISTINCT ON (name)
           id,
           name,
+          phone,
           analysis,
           created_at
         FROM health_records
@@ -189,6 +190,7 @@ router.get("/latest-reports", async (req, res) => {
         return {
           id: row.id,
           name: row.name,
+          phone: row.phone,
           analysis:
             typeof row.analysis === "string"
               ? JSON.parse(row.analysis)

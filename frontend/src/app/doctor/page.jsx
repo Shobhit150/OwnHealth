@@ -75,6 +75,8 @@ function PatientCard({ report }) {
   const drugs = a.medicine?.drugs || [];
   const phone = report.phone || "";
 
+  console.log(report);
+
   return (
     <div className={`rounded-2xl border bg-slate-900 overflow-hidden transition-all ${open ? "border-slate-600" : "border-slate-800"}`}>
       <button

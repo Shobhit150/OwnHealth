@@ -36,10 +36,10 @@ export default function PatientPage() {
 
   if (!loaded) return <LoadingScreen />;
   if (!result) return <NotFound onBack={() => router.push("/")} />;
-  
+
   const d = result?.data;
 
-  const phone = patient?.phone || "+919870148723";
+  const phone = "+919870148723";
 
   const message = encodeURIComponent(
     `Hello, I'm contacting regarding a health report.\n\nPatient: ${patient?.name || "Unknown"}\nScore: ${d?.score}/100\n\nPlease assist.`
