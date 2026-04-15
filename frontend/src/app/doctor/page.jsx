@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const API = "http://10.55.0.250:3001/api/latest-reports";
+const API = "http://localhost:3001/api/latest-reports";
 
 const AVATAR_COLORS = [
   { bg: "bg-blue-500/10 text-blue-400" },

@@ -212,3 +212,31 @@ router.get("/latest-reports", async (req, res) => {
     res.status(500).json({ error: "failed to fetch latest reports" });
   }
 });
+
+router.get("/score/:name", async (req, res) => {
+  try {
+    const { name } = req.params;
+
+    const dbRes = await pool.query(
+      `SELECT id, name, score, created_at
+       FROM health_user_score
+       WHERE name = $1
+       ORDER BY created_at DESC`,
+      [name]
+    );
+
+    if (!dbRes.rows.length) {
+      return res.status(404).json({ error: "No scores found" });
+    }
+
+    res.json({
+      name,
+      count: dbRes.rows.length,
+      scores: dbRes.rows
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "failed to fetch scores" });
+  }
+});

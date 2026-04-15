@@ -1,7 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+} from "chart.js";
+import { Line } from "react-chartjs-2";
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip);
 
 export default function PatientPage() {
   const { id } = useParams();
@@ -9,8 +21,8 @@ export default function PatientPage() {
   const [result, setResult] = useState(null);
   const [patient, setPatient] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [scoreHistory, setScoreHistory] = useState([]);
 
-  
   useEffect(() => {
     const raw = sessionStorage.getItem("vitalscan_result");
     const pat = sessionStorage.getItem("vitalscan_patient");
@@ -21,26 +33,30 @@ export default function PatientPage() {
       setPatient(pat ? JSON.parse(pat) : null);
       setLoaded(true);
     } else {
-      fetch(`http://10.55.0.250:3001/api/record/${id}`)
+      fetch(`http://localhost:3001/api/record/${id}`)
         .then((r) => r.json())
         .then((data) => {
-          setResult({
-            id: data.id,
-            data: data.analysis
-          });
+          setResult({ id: data.id, data: data.analysis });
+          setPatient({ name: data.name });
           setLoaded(true);
         })
         .catch(() => setLoaded(true));
     }
   }, [id]);
 
+  useEffect(() => {
+    if (!patient?.name) return;
+    fetch(`http://localhost:3001/api/score/${encodeURIComponent(patient.name)}`)
+      .then((r) => r.json())
+      .then((data) => setScoreHistory([...data.scores].reverse()))
+      .catch(() => {});
+  }, [patient]);
+
   if (!loaded) return <LoadingScreen />;
   if (!result) return <NotFound onBack={() => router.push("/")} />;
 
   const d = result?.data;
-
   const phone = "+919870148723";
-
   const message = encodeURIComponent(
     `Hello, I'm contacting regarding a health report.\n\nPatient: ${patient?.name || "Unknown"}\nScore: ${d?.score}/100\n\nPlease assist.`
   );
@@ -81,9 +97,12 @@ export default function PatientPage() {
 
       <div className="relative z-10 max-w-3xl mx-auto px-6 py-12">
 
+        {/* Header */}
         <div className="flex items-start justify-between mb-10 flex-wrap gap-4">
           <div>
-            <p className="font-mono text-[10px] tracking-widest text-emerald-500 uppercase mb-2">Patient Record · #{result.id}</p>
+            <p className="font-mono text-[10px] tracking-widest text-emerald-500 uppercase mb-2">
+              Patient Record · #{result.id}
+            </p>
             <h1 className="text-3xl font-extrabold tracking-tight text-white">
               {patient?.name ?? d?.name ?? "Patient"}
             </h1>
@@ -93,17 +112,26 @@ export default function PatientPage() {
           </div>
           <div className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-4 py-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-emerald-400 tracking-widest uppercase font-mono">Analysis Complete</span>
+            <span className="text-xs text-emerald-400 tracking-widest uppercase font-mono">
+              Analysis Complete
+            </span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 relative overflow-hidden">
-            <div className="pointer-events-none absolute top-0 right-0 w-40 h-40 rounded-full blur-[60px]"
-              style={{ backgroundColor: `${scoreColor}15` }} />
-            <p className="font-mono text-[10px] tracking-widest text-slate-500 uppercase mb-4">Overall Health Score</p>
+            <div
+              className="pointer-events-none absolute top-0 right-0 w-40 h-40 rounded-full blur-[60px]"
+              style={{ backgroundColor: `${scoreColor}15` }}
+            />
+            <p className="font-mono text-[10px] tracking-widest text-slate-500 uppercase mb-4">
+              Overall Health Score
+            </p>
             <div className="flex items-end gap-3 mb-4">
-              <span className="text-7xl font-extrabold tracking-tighter leading-none" style={{ color: scoreColor }}>
+              <span
+                className="text-7xl font-extrabold tracking-tighter leading-none"
+                style={{ color: scoreColor }}
+              >
                 {d?.score ?? "—"}
               </span>
               <span className="text-slate-600 font-mono text-sm mb-2">/100</span>
@@ -120,25 +148,32 @@ export default function PatientPage() {
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-            <p className="font-mono text-[10px] tracking-widest text-slate-500 uppercase mb-4">Life Expectancy</p>
+            <p className="font-mono text-[10px] tracking-widest text-slate-500 uppercase mb-4">
+              Life Expectancy
+            </p>
             <div className="flex items-end gap-2 mb-4">
               <span className="text-7xl font-extrabold tracking-tighter leading-none text-white">
                 {d?.life_expectancy ?? "—"}
               </span>
               <span className="text-slate-600 font-mono text-sm mb-2">yrs</span>
             </div>
-            <p className="text-xs text-slate-600 font-mono tracking-wider">AI estimated based on current health</p>
+            <p className="text-xs text-slate-600 font-mono tracking-wider">
+              AI estimated based on current health
+            </p>
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
               {[["Low Risk", "🟢"], ["Medium", "🟡"], ["High", "🔴"]].map(([l, e]) => (
                 <div key={l} className="rounded-lg bg-slate-800 py-2">
                   <div className="text-sm">{e}</div>
-                  <div className="text-[9px] text-slate-600 font-mono tracking-wider uppercase mt-0.5">{l}</div>
+                  <div className="text-[9px] text-slate-600 font-mono tracking-wider uppercase mt-0.5">
+                    {l}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
+        {/* Anomalies */}
         {d?.data?.anomalies?.length > 0 && (
           <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-6 mb-4">
             <p className="font-mono text-[10px] tracking-widest text-orange-400 uppercase mb-3">
@@ -146,7 +181,10 @@ export default function PatientPage() {
             </p>
             <div className="flex flex-wrap gap-2">
               {d.data.anomalies.map((t, i) => (
-                <span key={i} className="rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-1.5 font-mono text-xs text-orange-300">
+                <span
+                  key={i}
+                  className="rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-1.5 font-mono text-xs text-orange-300"
+                >
                   {t}
                 </span>
               ))}
@@ -154,6 +192,7 @@ export default function PatientPage() {
           </div>
         )}
 
+        {/* Tag cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <TagCard
             emoji="🏃"
@@ -169,73 +208,76 @@ export default function PatientPage() {
           />
         </div>
 
-        <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6 mb-8">
-    
-   <div className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
+        {/* Doctor Recommendation */}
+        <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6 mb-4">
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
+            <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-800">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+              <p className="font-mono text-[10px] tracking-widest text-emerald-400 uppercase">
+                Doctor Recommendation
+              </p>
+            </div>
+            <div className="p-5">
+              <p className="text-xs text-slate-400 leading-relaxed mb-5">
+                Based on your health analysis, a consultation is recommended for further evaluation
+                and personalized treatment.
+              </p>
+              <div className="flex items-center gap-3 bg-slate-800/60 rounded-xl p-3.5 mb-5">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <span className="text-emerald-400 text-base">🩺</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white">General Physician</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Initial consultation & medication guidance
+                  </p>
+                </div>
+                <span className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono tracking-wider px-3 py-1 rounded-full shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Available
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <a
+                  href={`https://wa.me/${phone.replace(/\D/g, "")}?text=${message}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold tracking-wide transition-all"
+                >
+                  💬 Chat doctor
+                </a>
+                <a
+                  href={`tel:${patient?.phone || "+919999999999"}`}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-700 hover:border-slate-600 bg-slate-800/40 hover:bg-slate-800 text-slate-300 text-xs font-mono tracking-wide transition-all"
+                >
+                  📞 Call now
+                </a>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 px-5 py-3 border-t border-slate-800 bg-slate-900/60">
+              <span className="text-slate-600 text-xs">ⓘ</span>
+              <p className="text-[10px] text-slate-600 tracking-wide">
+                AI recommendation only — not a substitute for professional medical advice.
+              </p>
+            </div>
+          </div>
+        </div>
 
-  <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-slate-800">
-    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-    <p className="font-mono text-[10px] tracking-widest text-emerald-400 uppercase">
-      Doctor Recommendation
-    </p>
-  </div>
-
-  <div className="p-5">
-    <p className="text-xs text-slate-400 leading-relaxed mb-5">
-      Based on your health analysis, a consultation is recommended for further evaluation and personalized treatment.
-    </p>
-
-    <div className="flex items-center gap-3 bg-slate-800/60 rounded-xl p-3.5 mb-5">
-      <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-        <span className="text-emerald-400 text-base">🩺</span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white">General Physician</p>
-        <p className="text-xs text-slate-500 mt-0.5">Initial consultation & medication guidance</p>
-      </div>
-      <span className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 text-[10px] font-mono tracking-wider px-3 py-1 rounded-full shrink-0">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-        Available
-      </span>
-    </div>
-
-    <div className="grid grid-cols-2 gap-3">
-      <a
-        href={`https://wa.me/${phone.replace(/\D/g, "")}?text=${message}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold tracking-wide transition-all"
-      >
-        💬 Chat doctor
-      </a>
-      
-        <a
-          href={`tel:${patient?.phone || "+919999999999"}`}
-          className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-700 hover:border-slate-600 bg-slate-800/40 hover:bg-slate-800 text-slate-300 text-xs font-mono tracking-wide transition-all"
-        >
-        📞 Call now
-      </a>
-    </div>
-  </div>
-
-  <div className="flex items-center gap-2 px-5 py-3 border-t border-slate-800 bg-slate-900/60">
-    <span className="text-slate-600 text-xs">ⓘ</span>
-    <p className="text-[10px] text-slate-600 tracking-wide">
-      AI recommendation only — not a substitute for professional medical advice.
-    </p>
-  </div>
-
-</div>
-
-
+        {/* AI Summary */}
         {d?.summary && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 mb-8">
-            <p className="font-mono text-[10px] tracking-widest text-slate-500 uppercase mb-3">📝 AI Summary</p>
+          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 mb-4">
+            <p className="font-mono text-[10px] tracking-widest text-slate-500 uppercase mb-3">
+              📝 AI Summary
+            </p>
             <p className="text-sm text-slate-300 leading-relaxed">{d.summary}</p>
           </div>
         )}
 
-        <div className="text-center">
+        {/* ── Score History Chart ── */}
+        <ScoreHistoryChart scores={scoreHistory} patientName={patient?.name} />
+
+        {/* Footer */}
+        <div className="text-center mt-8">
           <p className="font-mono text-[10px] text-slate-600 tracking-wider uppercase">
             Record ID: {result.id} · Generated by VitalScan AI · Not a medical diagnosis
           </p>
@@ -247,11 +289,145 @@ export default function PatientPage() {
           </button>
         </div>
       </div>
-      </div>
     </main>
   );
 }
 
+/* ─── Score History Chart Component ─── */
+function ScoreHistoryChart({ scores, patientName }) {
+  if (!scores || scores.length === 0) return null;
+
+  const vals = scores.map((s) => s.score);
+  const labels = scores.map((s) => {
+    const d = new Date(s.created_at);
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  });
+
+  const latest = vals[vals.length - 1] ?? 0;
+  const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+  const best = Math.max(...vals);
+
+  const colorFor = (v) => (v >= 75 ? "#34d399" : v >= 50 ? "#fbbf24" : "#f87171");
+  const avgColor = colorFor(avg);
+
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        data: vals,
+        borderColor: avgColor,
+        backgroundColor: avgColor + "18",
+        borderWidth: 2,
+        pointBackgroundColor: vals.map(colorFor),
+        pointBorderColor: "transparent",
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#0f172a",
+        titleColor: "#94a3b8",
+        bodyColor: "#f1f5f9",
+        borderColor: "#1e293b",
+        borderWidth: 1,
+        padding: 10,
+        callbacks: {
+          label: (ctx) => `Score: ${ctx.parsed.y}/100`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: "rgba(148,163,184,0.06)" },
+        ticks: {
+          color: "#64748b",
+          font: { family: "monospace", size: 11 },
+        },
+      },
+      y: {
+        min: 0,
+        max: 100,
+        grid: { color: "rgba(148,163,184,0.06)" },
+        ticks: {
+          color: "#64748b",
+          font: { family: "monospace", size: 11 },
+          stepSize: 25,
+          callback: (v) => `${v}`,
+        },
+      },
+    },
+  };
+
+  const statColor = (v) =>
+    v >= 75 ? "text-emerald-400" : v >= 50 ? "text-amber-400" : "text-red-400";
+
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden mb-4">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800">
+        <div className="flex items-center gap-2.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+          <p className="font-mono text-[10px] tracking-widest text-emerald-400 uppercase">
+            Score History
+          </p>
+        </div>
+        <span className="font-mono text-[10px] text-slate-600 tracking-widest uppercase">
+          {scores.length} record{scores.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-3 divide-x divide-slate-800 border-b border-slate-800">
+        {[
+          { label: "Latest", value: latest },
+          { label: "Average", value: avg },
+          { label: "Best", value: best },
+        ].map(({ label, value }) => (
+          <div key={label} className="px-5 py-4">
+            <p className="font-mono text-[9px] tracking-widest text-slate-500 uppercase mb-1">
+              {label}
+            </p>
+            <p className={`text-2xl font-extrabold tracking-tight ${statColor(value)}`}>
+              {value}
+              <span className="text-slate-600 text-sm font-normal">/100</span>
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-5">
+        <div style={{ position: "relative", width: "100%", height: "200px" }}>
+          <Line data={chartData} options={chartOptions} />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 px-5 py-3 border-t border-slate-800 bg-slate-900/60">
+        {[
+          { color: "#34d399", label: "Excellent (75+)" },
+          { color: "#fbbf24", label: "Moderate (50–74)" },
+          { color: "#f87171", label: "Needs attention (<50)" },
+        ].map(({ color, label }) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: color }}
+            />
+            <span className="font-mono text-[9px] text-slate-500 tracking-wider">{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Shared sub-components ─── */
 function TagCard({ emoji, title, items, tagClass }) {
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
@@ -282,7 +458,10 @@ function MedCard({ emoji, title, items, dot }) {
       {items?.length ? (
         <ul className="space-y-2.5">
           {items.map((v, i) => (
-            <li key={i} className="flex items-center gap-3 text-sm text-slate-300 border-b border-slate-800/60 pb-2.5 last:border-0 last:pb-0">
+            <li
+              key={i}
+              className="flex items-center gap-3 text-sm text-slate-300 border-b border-slate-800/60 pb-2.5 last:border-0 last:pb-0"
+            >
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
               {v}
             </li>
@@ -301,9 +480,17 @@ function LoadingScreen() {
       <div className="text-center">
         <svg className="animate-spin w-8 h-8 text-emerald-500 mx-auto mb-4" viewBox="0 0 24 24" fill="none">
           <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-          <path className="opacity-90" d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+          <path
+            className="opacity-90"
+            d="M12 2a10 10 0 0 1 10 10"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
         </svg>
-        <p className="font-mono text-xs text-slate-500 tracking-widest uppercase">Loading patient data…</p>
+        <p className="font-mono text-xs text-slate-500 tracking-widest uppercase">
+          Loading patient data…
+        </p>
       </div>
     </div>
   );
@@ -315,8 +502,13 @@ function NotFound({ onBack }) {
       <div>
         <p className="text-4xl mb-4">🔍</p>
         <h1 className="text-xl font-bold text-white mb-2">Record not found</h1>
-        <p className="text-slate-500 text-sm mb-6">This analysis record doesn't exist or has expired.</p>
-        <button onClick={onBack} className="text-emerald-400 text-xs tracking-widest uppercase font-mono hover:text-emerald-300">
+        <p className="text-slate-500 text-sm mb-6">
+          This analysis record doesn't exist or has expired.
+        </p>
+        <button
+          onClick={onBack}
+          className="text-emerald-400 text-xs tracking-widest uppercase font-mono hover:text-emerald-300"
+        >
           ← Go back home
         </button>
       </div>

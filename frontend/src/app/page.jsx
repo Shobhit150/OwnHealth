@@ -94,7 +94,7 @@ export default function Home() {
     setLoading(true);
     try {
       const pdfText = await parsePDF(file);
-      const res = await fetch("http://10.55.0.250:3001/api/insert", {
+      const res = await fetch("http://localhost:3001/api/insert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), phone: phone.trim(), text: pdfText }),
