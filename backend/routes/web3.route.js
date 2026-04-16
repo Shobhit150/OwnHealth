@@ -11,6 +11,8 @@ router.post("/insert", async (req, res) => {
   try {
     const { name, text, phone } = req.body;
     if (!name || !text) {
+
+      
       return res.status(400).json({ error: "name & text required" });
     }
 
